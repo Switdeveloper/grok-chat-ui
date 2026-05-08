@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grok Chat</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f14;
+      --surface: #1a1a24;
+      --surface2: #24243a;
+      --border: #2e2e50;
+      --accent: #7c6af5;
+      --accent-glow: rgba(124, 106, 245, 0.25);
+      --user-bubble: #7c6af5;
+      --bot-bubble: #24243a;
+      --text: #e0e0f0;
+      --text-muted: #7a7a9a;
+      --radius: 14px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; color: #fff;
+      flex-shrink: 0;
+    }
+
+    header h1 { font-size: 17px; font-weight: 700; }
+    header p { font-size: 12px; color: var(--text-muted); }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      margin-left: auto;
+      flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Chat Area ── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    .user .avatar { background: var(--accent); }
+    .bot .avatar  { background: var(--surface2); border: 1px solid var(--border); }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      line-height: 1.6;
+      font-size: 14.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .user .bubble {
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot .bubble {
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Typing indicator */
+    .typing {
+      display: flex;
+      gap: 5px;
+      padding: 14px 16px;
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      width: fit-content;
+    }
+
+    .typing span {
+      width: 7px; height: 7px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* ── Input Area ── */
+    #input-area {
+      padding: 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 10px;
+      max-width: 720px;
+      margin: 0 auto;
+      align-items: flex-end;
+    }
+
+    #msg-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 14.5px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      min-height: 48px;
+      max-height: 150px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #msg-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    #msg-input::placeholder { color: var(--text-muted); }
+
+    #send-btn {
+      width: 48px; height: 48px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:active { transform: scale(0.93); }
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #send-btn svg { fill: #fff; width: 18px; height: 18px; }
+
+    /* ── Welcome ── */
+    .welcome {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .welcome h2 { color: var(--text); margin-bottom: 8px; font-size: 20px; }
+    .welcome p  { font-size: 14px; }
+
+    /* ── Scrollbar ── */
+    #chat::-webkit-scrollbar { width: 6px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">G</div>
+  <div>
+    <h1>Grok Chat</h1>
+    <p>Powered by Grok via n8n</p>
+  </div>
+  <div class="status-dot" title="Connected"></div>
+</header>
+
+<div id="chat">
+  <div class="welcome">
+    <h2>Welcome to Grok Chat</h2>
+    <p>Ask anything — I'm powered by Grok AI through n8n.</p>
+  </div>
+</div>
+
+<div id="input-area">
+  <div class="input-wrap">
+    <textarea id="msg-input" rows="1" placeholder="Message Grok…" autofocus></textarea>
+    <button id="send-btn" title="Send">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  const chat     = document.getElementById('chat');
+  const input    = document.getElementById('msg-input');
+  const sendBtn  = document.getElementById('send-btn');
+  const WEBHOOK  = 'https://n8n-pzynllvf.us-west-1.clawcloudrun.com/webhook/grok-echo';
+  const MAX_CHARS = 6000;
+
+  // ── Auto-resize textarea ──
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+  });
+
+  // ── Helpers ──
+  function scroll() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addBubble(text, cls, avatar) {
+    // Remove welcome if present
+    const w = chat.querySelector('.welcome');
+    if (w) w.remove();
+
+    const div = document.createElement('div');
+    div.className = `message ${cls}`;
+    div.innerHTML = `
+      <div class="avatar">${avatar}</div>
+      <div class="bubble">${escapeHtml(text)}</div>`;
+    chat.appendChild(div);
+    scroll();
+    return div;
+  }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.className = 'message bot';
+    div.id = 'typing-indicator';
+    div.innerHTML = `
+      <div class="avatar">🤖</div>
+      <div class="typing"><span></span><span></span><span></span></div>`;
+    chat.appendChild(div);
+    scroll();
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    if (text.length > MAX_CHARS) {
+      alert(`Message too long (max ${MAX_CHARS} chars).`);
+      return;
+    }
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Show user message
+    addBubble(text, 'user', '👤');
+
+    // Show typing indicator
+    addTyping();
+
+    sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: { text } })
+      });
+
+      removeTyping();
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        addBubble(`⚠️ Error (${res.status}): ${err.message || res.statusText}`, 'bot', '🤖');
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      const reply = data.response || data.message || data.content || data.text || JSON.stringify(data, null, 2);
+      addBubble(String(reply), 'bot', '🤖');
+
+    } catch (err) {
+      removeTyping();
+      addBubble(`🌐 Network error: ${err.message}`, 'bot', '🤖');
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  // ── Events ──
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+</script>
+
+</body>
+</html>
